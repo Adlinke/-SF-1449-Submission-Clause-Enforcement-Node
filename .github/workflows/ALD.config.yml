@@ -1,0 +1,29 @@
+app:
+  name: "ALD Sovereign Contracting Engine"
+  mandate: "Generate Sections A–M packages, enforce risk-transfer clauses, publish testimony nodes."
+  version: "1.0.0"
+  authorship:
+    author_name: "Adila L"
+    author_email: "linkead17@yahoo.com"
+    sovereignty: "No mediation. No delegation. No exposure."
+  nodes:
+    - "SAM.gov publication"
+    - "GitHub testimony archive"
+    - "Desktop deployment node"
+deployment:
+  default_branch: "main"
+  environments:
+    - "staging"
+    - "production"
+  artifacts:
+    - "packages/contract/sections-A-M"
+    - "packages/cover-letter"
+    - "archives/testimony"
+policy:
+  credentials:
+    storage: "Use GitHub Actions Secrets and Environments only"
+    prohibited: "No plaintext passwords, tokens, or API keys in repo"
+  visibility:
+    timestamping: true
+    hashing: true
+    cross_linking: true
