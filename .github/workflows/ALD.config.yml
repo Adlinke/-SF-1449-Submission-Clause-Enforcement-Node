@@ -27,3 +27,232 @@ policy:
     timestamping: true
     hashing: true
     cross_linking: true
+    clauses:
+  - id: "FAR 52.247-30"
+    title: "F.o.b. Origin, Contractor's Facility"
+    enforcement:
+      risk_transfer_point: "Origin (contractor's facility)"
+      pickup: "Government"
+    notes: "Ensures clear transfer at origin; aligns with facility pickup."
+  - id: "FAR 52.247-44"
+    title: "F.o.b. Designated Air Carrier's Terminal, Point of Importation"
+    enforcement:
+      risk_transfer_point: "Designated air carrier terminal (U.S. import)"
+      handover: "Contractor → Government"
+    notes: "Risk borne by contractor until handover at import terminal."
+  - id: "FAR 52.212-4"
+    title: "Contract Terms and Conditions—Commercial Products and Commercial Services"
+    enforcement:
+      scope: "Commercial items framework under FAR Part 12"
+  - id: "FAR 52.212-5"
+    title: "Contract Terms and Conditions Required to Implement Statutes or Executive Orders—Commercial Products and Commercial Services"
+    enforcement:
+      scope: "Statutory implementation clauses; selection depends on procurement"
+defaults:
+  active_set:
+    - "FAR 52.247-30"
+    - "FAR 52.247-44"
+    - "FAR 52.212-4"
+    - "FAR 52.212-5"
+contact:
+  author:
+    name: "Adila L"
+    email: "linkead17@yahoo.com"
+  company:
+    legal_name: "AdLinkedot Tech"
+    domains:
+      primary: "AdLinkedot.tech"
+      archive: "github.com/AdLinkedot-Tech"
+testimony:
+  nodes:
+    - id: "node-001"
+      title: "SF-1449 Submission & Clause Enforcement"
+      timestamp: "2025-11-16T00:00:00Z"
+      artifacts:
+        - "contracts/aviation_transport/SF-1449.pdf"
+        - "contracts/aviation_transport/section-I-clauses.pdf"
+      cross_links:
+        - "https://AdLinkedot.tech/contracts"
+        - "https://github.com/AdLinkedot-Tech/archives/testimony/node-001"
+
+package:
+  title: "Aviation Transport Contract – Government Pickup & Importation"
+  form: "SF-1449"
+  sections:
+    A:
+      content: "SF-1449 (Blocks 12, 17a/b, 23, 24, 30a/b/c completed by contractor)"
+    B:
+      content: "CLINs, unit price, extended amounts (aligned to Blocks 23/24)"
+    C:
+      content: "Scope and specifications; facility pickup; designated air terminal"
+    D:
+      content: "Packaging and marking per carrier requirements"
+    E:
+      content: "Inspection at origin; acceptance at import terminal"
+    F:
+      content: "Delivery schedule and performance period"
+    G:
+      content: "Administration data; payment office; CO contacts"
+    H:
+      content: "Special requirements (if any)"
+    I:
+      clauses:
+        - "FAR 52.247-30"
+        - "FAR 52.247-44"
+        - "FAR 52.212-4"
+        - "FAR 52.212-5"
+    J:
+      attachments:
+        - "facility-address.pdf"
+        - "designated-air-terminal.pdf"
+    K:
+      reps_certs:
+        - "UEI"
+        - "NAICS"
+        - "FAR 52.212-3"
+    L:
+      instructions:
+        - "Submission deadline"
+        - "Format and delivery"
+    M:
+      evaluation:
+        - "Clause compliance"
+        - "Pricing"
+        - "Delivery capability"
+
+name: Build and Archive Testimony
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate YAML
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          file: |
+            ald.config.yml
+            clauses.yml
+            contacts.yml
+            contract.package.yml
+
+      - name: Generate hashes for artifacts
+        run: |
+          mkdir -p archives/hashes
+          find packages -type f -print0 | xargs -0 -I{} sh -c 'sha256sum "{}" >> archives/hashes/artifacts.sha256'
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > archives/hashes/timestamp.txt
+
+      - name: Create testimony index
+        run: |
+          mkdir -p archives/testimony
+          cat << 'EOF' > archives/testimony/index.yml
+          testimony:
+            build_id: "${{ github.run_id }}"
+            commit_sha: "${{ github.sha }}"
+            timestamp_utc: "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            artifacts_hash: "archives/hashes/artifacts.sha256"
+            cross_links:
+              - "https://AdLinkedot.tech/contracts"
+              - "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          EOF
+
+      - name: Upload testimony artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: testimony-archive
+          path: |
+            archives/hashes
+            archives/testimony
+            ald.config.yml
+            clauses.yml
+            contacts.yml
+            contract.package.yml
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ github.run_number }}"
+          name: "Testimony v${{ github.run_number }}"
+          body: "Executable law. No mediation. No exposure."
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ald.config.yml
+            clauses.yml
+            contacts.yml
+            contract.package.yml
+            archives/hashes/artifacts.sha256
+            archives/testimony/index.yml
+
+name: Deploy Sovereign Nodes
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify environment secrets
+        run: |
+          test -n "${DEPLOY_TOKEN}" || (echo "Missing DEPLOY_TOKEN" && exit 1)
+          test -n "${ARCHIVE_KEY}"   || (echo "Missing ARCHIVE_KEY" && exit 1)
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          ARCHIVE_KEY: ${{ secrets.ARCHIVE_KEY }}
+
+      - name: Deploy contracts and archives
+        run: |
+          echo "Deploying to ${{ github.event.inputs.environment }}..."
+          # Example: rsync or API call using $DEPLOY_TOKEN (not stored in repo)
+
+
+security yml
+
+security:
+  credentials:
+    storage: "GitHub Secrets"
+    prohibited:
+      - "Plaintext passwords in code"
+      - "API keys in repository files"
+      - "Access tokens in commits or artifacts"
+  access_controls:
+    environments:
+      staging:
+        reviewers_required: 1
+        protected_branches: ["main"]
+      production:
+        reviewers_required: 2
+        protected_branches: ["main"]
+  audit:
+    actions:
+      - "Enable branch protection"
+      - "Require signed commits (optional)"
+      - "Review secret access quarterly"
+
