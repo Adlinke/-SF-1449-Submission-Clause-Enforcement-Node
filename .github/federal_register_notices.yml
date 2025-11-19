@@ -1,0 +1,14 @@
+federal_register_notices:
+  - meeting: Glen Canyon Dam AMWG
+    date: 2025-02-26 to 2025-02-27
+    citation: Federal Register Vol. 89, No. 194, p. 81546
+    source: https://www.federalregister.gov/documents/2024/10/08/2024-23219/public-meeting-of-the-glen-canyon-dam-adaptive-management-work-group
+    enforcement_status: archived
+    testimony: public
+
+  - meeting: Glen Canyon Dam AMWG
+    date: 2025-08-20 to 2025-08-21
+    citation: Federal Register Vol. 90, No. 138, p. 34516
+    source: https://www.govinfo.gov/app/details/FR-2025-07-22/2025-13744
+    enforcement_status: archived
+    testimony: public
